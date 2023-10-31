@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxdata/influxdb/client"
+	client "github.com/influxdata/influxdb1-client"
 )
 
 func (cfg *InfluxConfig) BP() *client.BatchPoints {
@@ -25,9 +25,9 @@ func makePoint(host string, val *pduValue, when time.Time) client.Point {
 	return client.Point{
 		Measurement: val.name,
 		Tags: map[string]string{
-			"host":   host,
+			"host":      host,
 			"interface": strings.Replace(val.column, "/", "-", -1),
-			"vlanId" : val.vlan,
+			"vlanId":    val.vlan,
 		},
 		Fields: map[string]interface{}{
 			"value": val.value,
@@ -86,31 +86,28 @@ func (c *InfluxConfig) Hostname() string {
 // influxdb server don't drop collected data
 
 func influxEmitter(cfg *InfluxConfig) {
-	for {
-		select {
-		case data := <-cfg.iChan:
-			if testing {
-				break
-			}
-			if data == nil {
-				log.Println("null influx input")
-				continue
-			}
+	for data := range cfg.iChan {
+		if testing {
+			break
+		}
+		if data == nil {
+			log.Println("null influx input")
+			continue
+		}
 
-			// keep trying until we get it (don't drop the data)
-			for {
-				if _, err := cfg.conn.Write(*data); err != nil {
-					cfg.incErrors()
-					log.Println("influxdb write error:", err)
-					// try again in a bit
-					// TODO: this could be better
-					time.Sleep(30 * time.Second)
-					continue
-				} else {
-					cfg.incSent()
-				}
-				break
+		// keep trying until we get it (don't drop the data)
+		for {
+			if _, err := cfg.conn.Write(*data); err != nil {
+				cfg.incErrors()
+				log.Println("influxdb write error:", err)
+				// try again in a bit
+				// TODO: this could be better
+				time.Sleep(30 * time.Second)
+				continue
+			} else {
+				cfg.incSent()
 			}
+			break
 		}
 	}
 }

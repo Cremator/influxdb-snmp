@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,13 +12,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/influxdata/influxdb/client"
-	"github.com/kardianos/osext"
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
+	client "github.com/influxdata/influxdb1-client"
 	"gopkg.in/gcfg.v1"
 )
 
-const layout = "2006-01-02 15:04:05"
+//const layout = "2006-01-02 15:04:05"
 
 type SnmpConfig struct {
 	Host      string `gcfg:"host"`
@@ -85,15 +83,16 @@ var (
 	httpPort      = 8080
 	oidToName     = make(map[string]string)
 	nameToOid     = make(map[string]string)
-	appdir, _     = osext.ExecutableFolder()
+	appexe, _     = os.Executable()
+	appdir        = filepath.Dir(appexe)
 	logDir        = filepath.Join(appdir, "log")
 	oidFile       = filepath.Join(appdir, "oids.txt")
 	configFile    = filepath.Join(appdir, "config.gcfg")
 	errorLog      *os.File
 	errorDuration = time.Duration(10 * time.Minute)
 	errorPeriod   = errorDuration.String()
-	errorMax      = 100
-	errorName     string
+	//errorMax      = 100
+	errorName string
 
 	cfg = struct {
 		Snmp    map[string]*SnmpConfig
@@ -123,7 +122,7 @@ func (c *SnmpConfig) LoadPorts() {
 	if len(c.PortFile) == 0 {
 		return
 	}
-	data, err := ioutil.ReadFile(filepath.Join(appdir, c.PortFile))
+	data, err := os.ReadFile(filepath.Join(appdir, c.PortFile))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -194,7 +193,6 @@ func (c *SnmpConfig) Translate() {
 			fatal("No OID found for:", k)
 		}
 	}
-
 
 	spew("Looking up vlan id for:", c.Host)
 	vlanPdus, vlanErr := client.BulkWalkAll(vlanOid)
@@ -280,7 +278,7 @@ func init() {
 	if _, err := os.Stat(configFile); err != nil {
 		log.Fatal(err)
 	} else {
-		data, err := ioutil.ReadFile(configFile)
+		data, err := os.ReadFile(configFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -298,7 +296,7 @@ func init() {
 		oidFile = cfg.General.OidFile
 	}
 	// load oid lookup data
-	data, err := ioutil.ReadFile(oidFile)
+	data, err := os.ReadFile(oidFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -373,10 +371,10 @@ func errLog(msg string, args ...interface{}) {
 	fmt.Fprintf(errorLog, msg, args...)
 }
 
-func errMsg(msg string, err error) {
-	now := time.Now()
-	errLog("%s\t%s: %s\n", now.Format(layout), msg, err)
-}
+// func errMsg(msg string, err error) {
+// 	now := time.Now()
+// 	errLog("%s\t%s: %s\n", now.Format(layout), msg, err)
+// }
 
 func main() {
 	var wg sync.WaitGroup

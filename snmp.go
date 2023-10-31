@@ -9,20 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 )
 
-type Control struct {
-	nameOid string
-	found   map[string]string
-	labels  map[string]string
-	usable  map[string]struct{}
-}
+// type Control struct {
+// 	nameOid string
+// 	found   map[string]string
+// 	labels  map[string]string
+// 	usable  map[string]struct{}
+// }
 
 var (
-	errorSNMP int
-	nameOid   = "1.3.6.1.2.1.31.1.1.1.1" // ifName
-	vlanOid   = "1.3.6.1.4.1.9.9.68.1.2.2.1.2" //Cisco
+	//errorSNMP int
+	nameOid = "1.3.6.1.2.1.31.1.1.1.1"       // ifName
+	vlanOid = "1.3.6.1.4.1.9.9.68.1.2.2.1.2" //Cisco
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 
 type pduValue struct {
 	name, column, vlan string
-	value        interface{}
+	value              interface{}
 }
 
 func getPoint(cfg *SnmpConfig, pdu gosnmp.SnmpPDU) *pduValue {
@@ -236,10 +236,8 @@ func (s *SnmpConfig) Gather(count int, wg *sync.WaitGroup) {
 				break LOOP
 			case debug := <-s.debugging:
 				log.Println("debugging:", debug)
-				if debug && client.Logger == nil {
-					client.Logger = s.DebugLog()
-				} else {
-					client.Logger = nil
+				if debug {
+					client.Logger = gosnmp.NewLogger(log.New(os.Stdout, "", 0))
 				}
 			case status := <-s.enabled:
 				status <- debug

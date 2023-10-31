@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -144,7 +143,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}{
 		LogFile: errorName,
 		Started: startTime.Format(layout),
-		Uptime:  time.Now().Sub(startTime).String(),
+		Uptime:  time.Since(startTime).String(),
 		Period:  errorPeriod,
 		SNMP:    cfg.Snmp,
 		Influx:  cfg.Influx,
@@ -156,7 +155,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func getErrors() []string {
-	data, err := ioutil.ReadFile(errorName)
+	data, err := os.ReadFile(errorName)
 	if err != nil {
 		errLog("error reading log file: %s error:%s\n", errorName, err)
 		return []string{}
@@ -232,14 +231,14 @@ func LogsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogsList(w http.ResponseWriter, r *http.Request) {
-	files, err := ioutil.ReadDir(logDir)
+	files, err := os.ReadDir(logDir)
 	if err != nil {
 		fmt.Fprintln(w, err)
 	} else if len(files) == 0 {
 		fmt.Fprintln(w, "No logs found")
 	} else {
 		data := struct {
-			LogFiles []os.FileInfo
+			LogFiles []os.DirEntry
 			ErrLog   string
 		}{
 			LogFiles: files,
