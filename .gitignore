@@ -33,3 +33,4 @@ config.gcfg
 ports.txt
 
 log
+influxdb-snmp
